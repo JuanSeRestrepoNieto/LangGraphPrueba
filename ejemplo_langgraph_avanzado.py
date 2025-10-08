@@ -46,12 +46,43 @@ def calculadora(operacion: str) -> str:
         Resultado de la operación
     """
     try:
-        # ADVERTENCIA: eval() es inseguro en producción
-        # Usar solo para propósitos educativos
-        resultado = eval(operacion)
+import ast
+import operator as _op
+
+_ALLOWED_OPERATORS = {
+    ast.Add: _op.add,
+    ast.Sub: _op.sub,
+    ast.Mult: _op.mul,
+    ast.Div: _op.truediv,
+    ast.Mod: _op.mod,
+    ast.Pow: _op.pow,
+}
+
+def _eval_aritmetica(node: ast.AST) -> float:
+    if isinstance(node, ast.BinOp) and type(node.op) in _ALLOWED_OPERATORS:
+        left = _eval_aritmetica(node.left)
+        right = _eval_aritmetica(node.right)
+        return _ALLOWED_OPERATORS[type(node.op)](left, right)
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+        valor = _eval_aritmetica(node.operand)
+        return valor if isinstance(node.op, ast.UAdd) else -valor
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+    raise ValueError("Operación no permitida")
+
+@tool
+def calculadora(operacion: str) -> str:
+    """
+    Realiza operaciones matemáticas simples.
+    """
+    try:
+        expresion = ast.parse(operacion, mode="eval")
+        resultado = _eval_aritmetica(expresion.body)
         return f"El resultado de {operacion} es {resultado}"
-    except Exception as e:
-        return f"Error al calcular: {str(e)}"
+    except ValueError as exc:
+        return f"Operación inválida: {exc}"
+    except ZeroDivisionError:
+        return "Error al calcular: división por cero"
 
 
 @tool
