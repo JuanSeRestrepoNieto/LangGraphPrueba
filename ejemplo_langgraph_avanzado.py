@@ -194,17 +194,24 @@ def decidir_continuar(state: EstadoAgenteAvanzado) -> str:
     Decide si continuar procesando o terminar.
     """
     ultimo_mensaje = state["messages"][-1]
-    contenido = ultimo_mensaje.content.lower()
-    
+    ultimo_humano = next(
+        (msg.content.lower() for msg in reversed(state["messages"]) if isinstance(msg, HumanMessage)),
+        None,
+    )
+
+    if not ultimo_humano:
+        return "terminar"
+
+    contenido = ultimo_humano
+
     # Verificar palabras de despedida
     if any(palabra in contenido for palabra in ["adiós", "chao", "bye", "hasta luego", "terminar"]):
         print("\n⚠️  Detectada despedida - finalizando")
         return "terminar"
-    
+
     # Si hay menos de 10 mensajes, continuar
     if len(state["messages"]) < 10:
         return "continuar"
-    
     return "terminar"
 
 
